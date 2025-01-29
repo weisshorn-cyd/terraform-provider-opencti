@@ -1,12 +1,11 @@
 module terraform-provider-opencti
 
 go 1.22.7
-
 require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/terraform-plugin-framework v1.13.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
-	github.com/weisshorn-cyd/gocti v0.5.0
+	github.com/weisshorn-cyd/gocti v0.7.0
 )
 
 require (
