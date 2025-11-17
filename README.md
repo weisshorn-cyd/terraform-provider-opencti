@@ -3,7 +3,7 @@
 ## Requirements
 
 - [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.21
+- [Go](https://golang.org/doc/install) >= 1.25
 - [gocti](https://github.com/weisshorn-cyd/gocti)
 
 ## Installation
@@ -13,7 +13,7 @@ terraform {
   required_providers {
     opencti = {
       source = "weisshorn-cyd/opencti"
-      version = ">= 0.1.0"
+      version = ">= 0.2.0"
     }
   }
 }

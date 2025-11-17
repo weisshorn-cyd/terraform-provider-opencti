@@ -39,12 +39,13 @@ type userResource struct {
 
 // userResourceModel maps the resource schema data.
 type userResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	UserEmail   types.String `tfsdk:"user_email"`
-	APIToken    types.String `tfsdk:"api_token"`
-	Groups      types.List   `tfsdk:"groups"`
-	LastUpdated types.String `tfsdk:"last_updated"`
+	ID                  types.String `tfsdk:"id"`
+	Name                types.String `tfsdk:"name"`
+	UserEmail           types.String `tfsdk:"user_email"`
+	APIToken            types.String `tfsdk:"api_token"`
+	Groups              types.List   `tfsdk:"groups"`
+	UserConfidenceLevel types.Map    `tfsdk:"user_confidence_level"`
+	LastUpdated         types.String `tfsdk:"last_updated"`
 }
 
 // Metadata returns the resource type name.
@@ -81,6 +82,10 @@ func (r *userResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 			"groups": schema.ListAttribute{
 				ElementType: types.StringType,
 				Required:    true,
+			},
+			"max_confidence_level": schema.MapAttribute{
+				ElementType: types.StringType,
+				Required: true,
 			},
 		},
 	}
