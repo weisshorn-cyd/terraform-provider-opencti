@@ -66,8 +66,8 @@ github.com/vmihailenco/msgpack/v5 v5.4.1 h1:cQriyiUvjTwOHg8QZaPihLWeRAAVoCpE00IU
 github.com/vmihailenco/msgpack/v5 v5.4.1/go.mod h1:GaZTsDaehaPpQVyxrf5mtQlH+pc21PIudVV/E3rRQok=
 github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAhO7/IwNM9g=
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
-github.com/weisshorn-cyd/gocti v0.50.0 h1:jgjpIjNYAnqTfr83PXdqQMThinfKJc2lFDj/45qak6M=
-github.com/weisshorn-cyd/gocti v0.50.0/go.mod h1:QcepBloGmeSZjXvz6WDAfUAL//NLgl39vYVocpnvCIo=
+github.com/weisshorn-cyd/gocti v0.51.0 h1:1xEEv8G3fFGXWl4IJAqV37/+rnlEHuyGR3WAFgl29WQ=
+github.com/weisshorn-cyd/gocti v0.51.0/go.mod h1:QcepBloGmeSZjXvz6WDAfUAL//NLgl39vYVocpnvCIo=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
 go.opentelemetry.io/auto/sdk v1.1.0/go.mod h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=
 go.opentelemetry.io/otel v1.37.0 h1:9zhNfelUvx0KBfu/gb+ZgeAfAgtWrfHJZcAqFC228wQ=
