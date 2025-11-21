@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/weisshorn-cyd/gocti"
+	"github.com/weisshorn-cyd/gocti/graphql"
 	"github.com/weisshorn-cyd/gocti/system"
 )
 
@@ -39,13 +40,23 @@ type userResource struct {
 
 // userResourceModel maps the resource schema data.
 type userResourceModel struct {
-	ID                  types.String `tfsdk:"id"`
-	Name                types.String `tfsdk:"name"`
-	UserEmail           types.String `tfsdk:"user_email"`
-	APIToken            types.String `tfsdk:"api_token"`
-	Groups              types.List   `tfsdk:"groups"`
-	UserConfidenceLevel types.Map    `tfsdk:"user_confidence_level"`
-	LastUpdated         types.String `tfsdk:"last_updated"`
+	ID                  types.String          `tfsdk:"id"`
+	Name                types.String          `tfsdk:"name"`
+	UserEmail           types.String          `tfsdk:"user_email"`
+	APIToken            types.String          `tfsdk:"api_token"`
+	Groups              types.List            `tfsdk:"groups"`
+	UserConfidenceLevel *confidenceLevelModel `tfsdk:"user_confidence_level"`
+	LastUpdated         types.String          `tfsdk:"last_updated"`
+}
+
+type confidenceOverrideModel struct {
+	EntityType types.String `tfsdk:"entity_type"`
+	Confidence types.Int64  `tfsdk:"confidence"`
+}
+
+type confidenceLevelModel struct {
+	MaxConfidence types.Int64               `tfsdk:"max_confidence"`
+	Overrides     []confidenceOverrideModel `tfsdk:"overrides"`
 }
 
 // Metadata returns the resource type name.
@@ -83,9 +94,31 @@ func (r *userResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				ElementType: types.StringType,
 				Required:    true,
 			},
-			"max_confidence_level": schema.MapAttribute{
-				ElementType: types.StringType,
-				Required: true,
+			"user_confidence_level": schema.SingleNestedAttribute{
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "User confidence configuration (defaults to max_confidence = 100).",
+
+				Attributes: map[string]schema.Attribute{
+					"max_confidence": schema.Int64Attribute{
+						Optional: true,
+						Computed: true,
+					},
+					"overrides": schema.ListNestedAttribute{
+						Optional: true,
+						Computed: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"entity_type": schema.StringAttribute{
+									Required: true,
+								},
+								"confidence": schema.Int64Attribute{
+									Required: true,
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -95,6 +128,7 @@ func (r *userResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan userResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -126,14 +160,37 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 		}
 	}
 
+	if plan.UserConfidenceLevel == nil ||
+		plan.UserConfidenceLevel.MaxConfidence.IsNull() ||
+		plan.UserConfidenceLevel.MaxConfidence.IsUnknown() {
+		plan.UserConfidenceLevel = &confidenceLevelModel{
+			MaxConfidence: types.Int64Value(100),
+			Overrides:     []confidenceOverrideModel{},
+		}
+	}
+
+	var overrides []graphql.ConfidenceLevelOverrideInput
+	for _, o := range plan.UserConfidenceLevel.Overrides {
+		overrides = append(overrides, graphql.ConfidenceLevelOverrideInput{
+			EntityType:    o.EntityType.ValueString(),
+			MaxConfidence: int(o.Confidence.ValueInt64()),
+		})
+	}
+
+	conf := graphql.ConfidenceLevelInput{
+		MaxConfidence: int(plan.UserConfidenceLevel.MaxConfidence.ValueInt64()),
+		Overrides:     overrides,
+	}
+
 	// Create new user
 	if createdUser.Name == "" {
 		tflog.Info(ctx, "User does not exist, creating")
 
-		createdUser, err = r.client.CreateUser(ctx, "id name user_email api_token", system.UserAddInput{
-			UserEmail: plan.UserEmail.ValueString(),
-			Name:      plan.Name.ValueString(),
-			Password:  uuid.New().String(),
+		createdUser, err = r.client.CreateUser(ctx, "id name user_email api_token user_confidence_level { max_confidence overrides { entity_type max_confidence } }", system.UserAddInput{
+			UserEmail:           plan.UserEmail.ValueString(),
+			Name:                plan.Name.ValueString(),
+			Password:            uuid.New().String(),
+			UserConfidenceLevel: conf,
 		})
 		if err != nil {
 			resp.Diagnostics.AddError(
@@ -185,12 +242,27 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 	groupsAssignedList, diags := types.ListValueFrom(ctx, types.StringType, groupsAssigned)
 	resp.Diagnostics.Append(diags...)
 
+	// Convert the userConfidenceLevelModel for the plan
+	tfOverrides := make([]confidenceOverrideModel, len(createdUser.UserConfidenceLevel.Overrides))
+	for i, o := range createdUser.UserConfidenceLevel.Overrides {
+		tfOverrides[i] = confidenceOverrideModel{
+			EntityType: types.StringValue(o.EntityType),
+			Confidence: types.Int64Value(int64(o.MaxConfidence)),
+		}
+	}
+
+	userConfidenceLevel := &confidenceLevelModel{
+		MaxConfidence: types.Int64Value(int64(createdUser.UserConfidenceLevel.MaxConfidence)),
+		Overrides:     tfOverrides,
+	}
+
 	plan = userResourceModel{
-		ID:        types.StringValue(createdUser.ID),
-		Name:      types.StringValue(createdUser.Name),
-		UserEmail: types.StringValue(createdUser.UserEmail),
-		APIToken:  types.StringValue(createdUser.ApiToken),
-		Groups:    groupsAssignedList,
+		ID:                  types.StringValue(createdUser.ID),
+		Name:                types.StringValue(createdUser.Name),
+		UserEmail:           types.StringValue(createdUser.UserEmail),
+		APIToken:            types.StringValue(createdUser.ApiToken),
+		Groups:              groupsAssignedList,
+		UserConfidenceLevel: userConfidenceLevel,
 	}
 
 	plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
@@ -208,6 +280,7 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state userResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 
@@ -216,7 +289,7 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 
 	// Read user from opencti
-	user, err := r.client.ReadUser(ctx, "id name user_email api_token groups { edges { node {id name} } }", state.ID.ValueString())
+	user, err := r.client.ReadUser(ctx, "id name user_email api_token user_confidence_level { max_confidence overrides { entity_type max_confidence } } groups { edges { node {id name} } }", state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading opencti user", err.Error(),
@@ -227,6 +300,7 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	tflog.Debug(ctx, fmt.Sprintf("User read: %+v", user))
 
+	// Format the groups
 	groups := []string{}
 	for _, group := range user.Groups.Edges {
 		groups = append(groups, group.Node.Name)
@@ -236,11 +310,27 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	groupsList, diags := types.ListValueFrom(ctx, types.StringType, groups)
 	resp.Diagnostics.Append(diags...)
 
+	// Format the confidence level
+	tfOverrides := make([]confidenceOverrideModel, len(user.UserConfidenceLevel.Overrides))
+
+	for i, o := range user.UserConfidenceLevel.Overrides {
+		tfOverrides[i] = confidenceOverrideModel{
+			EntityType: types.StringValue(o.EntityType),
+			Confidence: types.Int64Value(int64(o.MaxConfidence)),
+		}
+	}
+
+	userConfidenceMap := &confidenceLevelModel{
+		MaxConfidence: types.Int64Value(int64(user.UserConfidenceLevel.MaxConfidence)),
+		Overrides:     tfOverrides,
+	}
+
 	state.ID = types.StringValue(user.ID)
 	state.Name = types.StringValue(user.Name)
 	state.UserEmail = types.StringValue(user.UserEmail)
 	state.APIToken = types.StringValue(user.ApiToken)
 	state.Groups = groupsList
+	state.UserConfidenceLevel = userConfidenceMap
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &state)
@@ -255,6 +345,7 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan userResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -274,6 +365,7 @@ func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	tflog.Info(ctx, fmt.Sprintf("User read: %+v", user))
 
 	var groupsPlan []string
+
 	diags = plan.Groups.ElementsAs(ctx, &groupsPlan, false)
 	resp.Diagnostics.Append(diags...)
 
@@ -355,6 +447,7 @@ func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, r
 func (r *userResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
 	var state userResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 

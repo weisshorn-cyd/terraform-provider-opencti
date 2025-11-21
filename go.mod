@@ -9,6 +9,8 @@ require (
 	github.com/weisshorn-cyd/gocti v0.50.0
 )
 
+replace github.com/weisshorn-cyd/gocti v0.50.0 => /home/user/code/gocti
+
 require (
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect

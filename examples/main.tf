@@ -2,7 +2,6 @@ terraform {
   required_providers {
     opencti = {
       source  = "terraform.local/weisshorn-cyd/opencti"
-      version = ">= 0.1.0"
     }
   }
 }

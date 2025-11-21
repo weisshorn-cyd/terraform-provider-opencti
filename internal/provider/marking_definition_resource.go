@@ -81,6 +81,7 @@ func (r *markingDefinitionResource) Schema(_ context.Context, _ resource.SchemaR
 func (r *markingDefinitionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan markingDefinitionResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -128,6 +129,7 @@ func (r *markingDefinitionResource) Create(ctx context.Context, req resource.Cre
 func (r *markingDefinitionResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state markingDefinitionResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 
@@ -165,6 +167,7 @@ func (r *markingDefinitionResource) Read(ctx context.Context, req resource.ReadR
 func (r *markingDefinitionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan markingDefinitionResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -212,6 +215,7 @@ func (r *markingDefinitionResource) Update(ctx context.Context, req resource.Upd
 func (r *markingDefinitionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
 	var state markingDefinitionResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 

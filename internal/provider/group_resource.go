@@ -99,6 +99,7 @@ func (r *groupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan groupResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -240,6 +241,7 @@ func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, 
 func (r *groupResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state groupResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 
@@ -303,6 +305,7 @@ func (r *groupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 func (r *groupResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan groupResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -322,6 +325,7 @@ func (r *groupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	tflog.Info(ctx, fmt.Sprintf("Group read: %+v", group))
 
 	var rolesPlan []string
+
 	diags = plan.Roles.ElementsAs(ctx, &rolesPlan, false)
 	resp.Diagnostics.Append(diags...)
 
@@ -390,6 +394,7 @@ func (r *groupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	plan.Roles = rolesList
 
 	var markingsPlan []string
+
 	diags = plan.AllowedMarking.ElementsAs(ctx, &markingsPlan, false)
 	resp.Diagnostics.Append(diags...)
 
@@ -471,6 +476,7 @@ func (r *groupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 func (r *groupResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
 	var state groupResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 

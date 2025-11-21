@@ -73,6 +73,7 @@ func (r *taskTemplateResource) Schema(_ context.Context, _ resource.SchemaReques
 func (r *taskTemplateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan taskTemplateResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -114,6 +115,7 @@ func (r *taskTemplateResource) Create(ctx context.Context, req resource.CreateRe
 func (r *taskTemplateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state taskTemplateResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 
@@ -150,6 +152,7 @@ func (r *taskTemplateResource) Read(ctx context.Context, req resource.ReadReques
 func (r *taskTemplateResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan taskTemplateResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -191,6 +194,7 @@ func (r *taskTemplateResource) Update(ctx context.Context, req resource.UpdateRe
 func (r *taskTemplateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
 	var state taskTemplateResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 

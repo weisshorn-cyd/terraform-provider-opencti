@@ -71,6 +71,7 @@ func (p *openctiProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 	// Retrieve provider data from configuration
 	var config openctiProviderModel
+
 	diags := req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
 

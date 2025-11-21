@@ -21,7 +21,7 @@ terraform {
 
 ## Running the provider
 
-1. `$ make install`
+1. `$ make prepare-examples`
 1. `$ cd examples`
 1. `$ TF_VAR_opencti_token="$OPENCTI_ADMIN_TOKEN" terraform init --reconfigure`
 1. `$ TF_VAR_opencti_token="$OPENCTI_ADMIN_TOKEN" terraform plan`
