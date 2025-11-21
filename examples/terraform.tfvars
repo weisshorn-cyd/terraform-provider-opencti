@@ -269,7 +269,7 @@ users = [
       "Manager",
     ]
     user_confidence_level = {
-      max_confidence = 100
+      max_confidence = 10
       overrides = []
     }
   },
