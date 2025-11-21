@@ -249,15 +249,15 @@ users = [
       "Analyst",
     ]
     user_confidence_level = {
-      max_confidence = 100
+      max_confidence = 90
       overrides = [
         {
           entity_type = "Indicator"
-          confidence  = 80
+          max_confidence = 80
         },
         {
           entity_type = "Malware"
-          confidence  = 70
+          max_confidence = 70
         }
       ]
     }

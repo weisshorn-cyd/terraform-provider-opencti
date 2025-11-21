@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -40,23 +41,13 @@ type userResource struct {
 
 // userResourceModel maps the resource schema data.
 type userResourceModel struct {
-	ID                  types.String          `tfsdk:"id"`
-	Name                types.String          `tfsdk:"name"`
-	UserEmail           types.String          `tfsdk:"user_email"`
-	APIToken            types.String          `tfsdk:"api_token"`
-	Groups              types.List            `tfsdk:"groups"`
-	UserConfidenceLevel *confidenceLevelModel `tfsdk:"user_confidence_level"`
-	LastUpdated         types.String          `tfsdk:"last_updated"`
-}
-
-type confidenceOverrideModel struct {
-	EntityType types.String `tfsdk:"entity_type"`
-	Confidence types.Int64  `tfsdk:"confidence"`
-}
-
-type confidenceLevelModel struct {
-	MaxConfidence types.Int64               `tfsdk:"max_confidence"`
-	Overrides     []confidenceOverrideModel `tfsdk:"overrides"`
+	ID                  types.String `tfsdk:"id"`
+	Name                types.String `tfsdk:"name"`
+	UserEmail           types.String `tfsdk:"user_email"`
+	APIToken            types.String `tfsdk:"api_token"`
+	Groups              types.List   `tfsdk:"groups"`
+	UserConfidenceLevel types.Object `tfsdk:"user_confidence_level"`
+	LastUpdated         types.String `tfsdk:"last_updated"`
 }
 
 // Metadata returns the resource type name.
@@ -112,7 +103,7 @@ func (r *userResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 								"entity_type": schema.StringAttribute{
 									Required: true,
 								},
-								"confidence": schema.Int64Attribute{
+								"max_confidence": schema.Int64Attribute{
 									Required: true,
 								},
 							},
@@ -160,27 +151,51 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 		}
 	}
 
-	if plan.UserConfidenceLevel == nil ||
-		plan.UserConfidenceLevel.MaxConfidence.IsNull() ||
-		plan.UserConfidenceLevel.MaxConfidence.IsUnknown() {
-		plan.UserConfidenceLevel = &confidenceLevelModel{
-			MaxConfidence: types.Int64Value(100),
-			Overrides:     []confidenceOverrideModel{},
-		}
+	overrideObjectType := types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"entity_type":    types.StringType,
+			"max_confidence": types.Int64Type,
+		},
 	}
 
+	if plan.UserConfidenceLevel.IsNull() || plan.UserConfidenceLevel.IsUnknown() {
+		tflog.Info(ctx, "User confidence level not provided, setting default")
+
+		plan.UserConfidenceLevel = types.ObjectValueMust(
+			map[string]attr.Type{
+				"max_confidence": types.Int64Type,
+				"overrides": types.ListType{
+					ElemType: overrideObjectType,
+				},
+			},
+			map[string]attr.Value{
+				"max_confidence": types.Int64Value(100),
+				"overrides":      types.ListValueMust(overrideObjectType, []attr.Value{}),
+			},
+		)
+	}
+
+	maxConfidence := plan.UserConfidenceLevel.Attributes()["max_confidence"].(types.Int64).ValueInt64()
+	overridesList := plan.UserConfidenceLevel.Attributes()["overrides"].(types.List)
+
 	var overrides []graphql.ConfidenceLevelOverrideInput
-	for _, o := range plan.UserConfidenceLevel.Overrides {
+
+	var overridesObjects []types.Object
+	overridesList.ElementsAs(ctx, &overridesObjects, false)
+
+	for _, o := range overridesObjects {
+		attrs := o.Attributes()
 		overrides = append(overrides, graphql.ConfidenceLevelOverrideInput{
-			EntityType:    o.EntityType.ValueString(),
-			MaxConfidence: int(o.Confidence.ValueInt64()),
+			EntityType:    attrs["entity_type"].(types.String).ValueString(),
+			MaxConfidence: int(attrs["max_confidence"].(types.Int64).ValueInt64()),
 		})
 	}
 
 	conf := graphql.ConfidenceLevelInput{
-		MaxConfidence: int(plan.UserConfidenceLevel.MaxConfidence.ValueInt64()),
+		MaxConfidence: int(maxConfidence),
 		Overrides:     overrides,
 	}
+	tflog.Info(ctx, fmt.Sprintf("Confidence level: %+v", conf))
 
 	// Create new user
 	if createdUser.Name == "" {
@@ -237,24 +252,12 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	sort.Strings(groupsAssigned)
 
-	tflog.Debug(ctx, fmt.Sprintf("User created: %+v", createdUser))
+	tflog.Info(ctx, fmt.Sprintf("User created: %+v", createdUser))
 
 	groupsAssignedList, diags := types.ListValueFrom(ctx, types.StringType, groupsAssigned)
 	resp.Diagnostics.Append(diags...)
 
-	// Convert the userConfidenceLevelModel for the plan
-	tfOverrides := make([]confidenceOverrideModel, len(createdUser.UserConfidenceLevel.Overrides))
-	for i, o := range createdUser.UserConfidenceLevel.Overrides {
-		tfOverrides[i] = confidenceOverrideModel{
-			EntityType: types.StringValue(o.EntityType),
-			Confidence: types.Int64Value(int64(o.MaxConfidence)),
-		}
-	}
-
-	userConfidenceLevel := &confidenceLevelModel{
-		MaxConfidence: types.Int64Value(int64(createdUser.UserConfidenceLevel.MaxConfidence)),
-		Overrides:     tfOverrides,
-	}
+	userConfidenceLevel := convertUserConfidenceLevel(createdUser.UserConfidenceLevel)
 
 	plan = userResourceModel{
 		ID:                  types.StringValue(createdUser.ID),
@@ -310,27 +313,14 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	groupsList, diags := types.ListValueFrom(ctx, types.StringType, groups)
 	resp.Diagnostics.Append(diags...)
 
-	// Format the confidence level
-	tfOverrides := make([]confidenceOverrideModel, len(user.UserConfidenceLevel.Overrides))
-
-	for i, o := range user.UserConfidenceLevel.Overrides {
-		tfOverrides[i] = confidenceOverrideModel{
-			EntityType: types.StringValue(o.EntityType),
-			Confidence: types.Int64Value(int64(o.MaxConfidence)),
-		}
-	}
-
-	userConfidenceMap := &confidenceLevelModel{
-		MaxConfidence: types.Int64Value(int64(user.UserConfidenceLevel.MaxConfidence)),
-		Overrides:     tfOverrides,
-	}
+	userConfidenceLevel := convertUserConfidenceLevel(user.UserConfidenceLevel)
 
 	state.ID = types.StringValue(user.ID)
 	state.Name = types.StringValue(user.Name)
 	state.UserEmail = types.StringValue(user.UserEmail)
 	state.APIToken = types.StringValue(user.ApiToken)
 	state.Groups = groupsList
-	state.UserConfidenceLevel = userConfidenceMap
+	state.UserConfidenceLevel = userConfidenceLevel
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &state)
@@ -488,4 +478,58 @@ func (r *userResource) Configure(_ context.Context, req resource.ConfigureReques
 func (r *userResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// Retrieve import ID and save to id attribute
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+// convertUserConfidenceLevel converts the input for terraform state.
+func convertUserConfidenceLevel(conf graphql.ConfidenceLevel) types.Object {
+	// Define the ObjectTypes
+	overrideObjectType := types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"entity_type":    types.StringType,
+			"max_confidence": types.Int64Type,
+		},
+	}
+
+	overrideListType := types.ListType{
+		ElemType: overrideObjectType,
+	}
+
+	confidenceLevelObjectType := types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"max_confidence": types.Int64Type,
+			"overrides":      overrideListType,
+		},
+	}
+
+	// Build overrides as []attr.Value
+	overrideValues := make([]attr.Value, len(conf.Overrides))
+	for i, o := range conf.Overrides {
+		overrideValues[i] = types.ObjectValueMust(
+			map[string]attr.Type{
+				"entity_type":    types.StringType,
+				"max_confidence": types.Int64Type,
+			},
+			map[string]attr.Value{
+				"entity_type":    types.StringValue(o.EntityType),
+				"max_confidence": types.Int64Value(int64(o.MaxConfidence)),
+			},
+		)
+	}
+
+	// If overrides is empty, still create a list with correct element type
+	var overrideList types.List
+	if len(overrideValues) == 0 {
+		overrideList = types.ListValueMust(overrideObjectType, []attr.Value{})
+	} else {
+		overrideList = types.ListValueMust(overrideObjectType, overrideValues)
+	}
+
+	// Build the main object
+	return types.ObjectValueMust(
+		confidenceLevelObjectType.AttrTypes,
+		map[string]attr.Value{
+			"max_confidence": types.Int64Value(int64(conf.MaxConfidence)),
+			"overrides":      overrideList,
+		},
+	)
 }
