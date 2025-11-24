@@ -73,8 +73,8 @@ variable "users" {
     user_confidence_level = optional(object({
       max_confidence = number
       overrides = list(object({
-        entity_type = string
-        max_confidence  = number
+        entity_type    = string
+        max_confidence = number
       }))
     }))
   }))

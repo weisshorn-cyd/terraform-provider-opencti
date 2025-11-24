@@ -254,11 +254,11 @@ users = [
       max_confidence = 90
       overrides = [
         {
-          entity_type = "Indicator"
+          entity_type    = "Indicator"
           max_confidence = 80
         },
         {
-          entity_type = "Malware"
+          entity_type    = "Malware"
           max_confidence = 70
         }
       ]
@@ -273,7 +273,7 @@ users = [
     ]
     user_confidence_level = {
       max_confidence = 10
-      overrides = []
+      overrides      = []
     }
   },
 ]

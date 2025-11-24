@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     opencti = {
-      source  = "terraform.local/weisshorn-cyd/opencti"
+      source = "terraform.local/weisshorn-cyd/opencti"
     }
   }
 }
