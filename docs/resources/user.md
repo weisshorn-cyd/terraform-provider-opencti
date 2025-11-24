@@ -21,8 +21,28 @@ description: |-
 - `name` (String)
 - `user_email` (String)
 
+### Optional
+
+- `user_confidence_level` (Attributes) User confidence configuration (defaults to max_confidence = 100). (see [below for nested schema](#nestedatt--user_confidence_level))
+
 ### Read-Only
 
 - `api_token` (String, Sensitive)
 - `id` (String) The ID of this resource.
 - `last_updated` (String)
+
+<a id="nestedatt--user_confidence_level"></a>
+### Nested Schema for `user_confidence_level`
+
+Optional:
+
+- `max_confidence` (Number)
+- `overrides` (Attributes List) (see [below for nested schema](#nestedatt--user_confidence_level--overrides))
+
+<a id="nestedatt--user_confidence_level--overrides"></a>
+### Nested Schema for `user_confidence_level.overrides`
+
+Required:
+
+- `entity_type` (String)
+- `max_confidence` (Number)
