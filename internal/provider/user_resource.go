@@ -179,8 +179,27 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 		)
 	}
 
-	maxConfidence := plan.UserConfidenceLevel.Attributes()["max_confidence"].(types.Int64).ValueInt64()
-	overridesList := plan.UserConfidenceLevel.Attributes()["overrides"].(types.List)
+	v, ok := plan.UserConfidenceLevel.Attributes()["max_confidence"].(types.Int64)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Error casting max confidence",
+			"Could not create user, unexpected error: "+err.Error(),
+		)
+
+		return
+	}
+
+	maxConfidence := v.ValueInt64()
+
+	overridesList, ok := plan.UserConfidenceLevel.Attributes()["overrides"].(types.List)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Error casting overrides",
+			"Could not create user, unexpected error: "+err.Error(),
+		)
+
+		return
+	}
 
 	var overrides []graphql.ConfidenceLevelOverrideInput
 
@@ -189,9 +208,30 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	for _, o := range overridesObjects {
 		attrs := o.Attributes()
+
+		entityType, ok := attrs["entity_type"].(types.String)
+		if !ok {
+			resp.Diagnostics.AddError(
+				"Error casting entity type",
+				"Could not create user, unexpected error: "+err.Error(),
+			)
+
+			return
+		}
+
+		maxConfidence, ok := attrs["max_confidence"].(types.Int64)
+		if !ok {
+			resp.Diagnostics.AddError(
+				"Error casting max confidence",
+				"Could not create user, unexpected error: "+err.Error(),
+			)
+
+			return
+		}
+
 		overrides = append(overrides, graphql.ConfidenceLevelOverrideInput{
-			EntityType:    attrs["entity_type"].(types.String).ValueString(),
-			MaxConfidence: int(attrs["max_confidence"].(types.Int64).ValueInt64()),
+			EntityType:    entityType.ValueString(),
+			MaxConfidence: int(maxConfidence.ValueInt64()),
 		})
 	}
 

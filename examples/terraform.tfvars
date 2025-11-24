@@ -240,6 +240,7 @@ users = [
     groups = [
       "Analyst",
       "AnalystLabelEditor",
+      "Default",
     ]
   },
   {
@@ -247,6 +248,7 @@ users = [
     user_email = "def@test.io"
     groups = [
       "Analyst",
+      "Default",
     ]
     user_confidence_level = {
       max_confidence = 90
@@ -266,6 +268,7 @@ users = [
     name       = "[C] ghi"
     user_email = "ghi@test.io"
     groups = [
+      "Default",
       "Manager",
     ]
     user_confidence_level = {
