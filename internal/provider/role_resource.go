@@ -77,6 +77,7 @@ func (r *roleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 func (r *roleResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan roleResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -157,6 +158,7 @@ func (r *roleResource) Create(ctx context.Context, req resource.CreateRequest, r
 func (r *roleResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state roleResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 
@@ -204,6 +206,7 @@ func (r *roleResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan roleResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -223,6 +226,7 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	tflog.Info(ctx, fmt.Sprintf("Role to update: %+v", role))
 
 	var capabilitiesPlan []string
+
 	diags = plan.Capabilities.ElementsAs(ctx, &capabilitiesPlan, false)
 	resp.Diagnostics.Append(diags...)
 
@@ -304,6 +308,7 @@ func (r *roleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 func (r *roleResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
 	var state roleResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 

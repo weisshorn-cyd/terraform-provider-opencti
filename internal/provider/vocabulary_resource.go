@@ -77,6 +77,7 @@ func (r *vocabularyResource) Schema(_ context.Context, _ resource.SchemaRequest,
 func (r *vocabularyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan vocabularyResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -122,6 +123,7 @@ func (r *vocabularyResource) Create(ctx context.Context, req resource.CreateRequ
 func (r *vocabularyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state vocabularyResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 
@@ -159,6 +161,7 @@ func (r *vocabularyResource) Read(ctx context.Context, req resource.ReadRequest,
 func (r *vocabularyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan vocabularyResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -204,6 +207,7 @@ func (r *vocabularyResource) Update(ctx context.Context, req resource.UpdateRequ
 func (r *vocabularyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
 	var state vocabularyResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 

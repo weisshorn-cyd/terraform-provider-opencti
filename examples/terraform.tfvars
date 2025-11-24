@@ -71,9 +71,21 @@ markings = [
   },
   {
     definitionType = "TLP",
-    definition     = "TLP:RED",
+    definition     = "TLP:AMBER+STRICT",
     xOpenctiOrder  = 4,
+    xOpenctiColor  = "#d84315",
+  },
+  {
+    definitionType = "TLP",
+    definition     = "TLP:RED",
+    xOpenctiOrder  = 5,
     xOpenctiColor  = "#c62828",
+  },
+  {
+    definitionType = "TLP",
+    definition     = "TLP:TEST",
+    xOpenctiOrder  = 2,
+    xOpenctiColor  = "#104d13",
   },
 ]
 
@@ -223,26 +235,46 @@ task_templates_test = [
 
 users = [
   {
-    name       = "[C] abc",
+    name       = "[C] abc"
     user_email = "abc@test.io"
     groups = [
       "Analyst",
       "AnalystLabelEditor",
+      "Default",
     ]
   },
   {
-    name       = "[C] def",
+    name       = "[C] def"
     user_email = "def@test.io"
     groups = [
       "Analyst",
+      "Default",
     ]
+    user_confidence_level = {
+      max_confidence = 90
+      overrides = [
+        {
+          entity_type    = "Indicator"
+          max_confidence = 80
+        },
+        {
+          entity_type    = "Malware"
+          max_confidence = 70
+        }
+      ]
+    }
   },
   {
-    name       = "[C] ghi",
+    name       = "[C] ghi"
     user_email = "ghi@test.io"
     groups = [
+      "Default",
       "Manager",
     ]
+    user_confidence_level = {
+      max_confidence = 10
+      overrides      = []
+    }
   },
 ]
 

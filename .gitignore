@@ -37,3 +37,5 @@ website/vendor
 terraform-provider-opencti*
 examples/terraform.d
 examples/.terraform*
+examples/.envrc
+

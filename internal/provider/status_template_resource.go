@@ -97,6 +97,7 @@ func (r *statusTemplateResource) Schema(_ context.Context, _ resource.SchemaRequ
 func (r *statusTemplateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan statusTemplateResourceModel
+
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 
@@ -146,7 +147,7 @@ func (r *statusTemplateResource) Create(ctx context.Context, req resource.Create
 	for _, workflow := range workflows {
 		tflog.Info(ctx, fmt.Sprintf("Assigning status %s to entity %s with order %d", plan.Name.ValueString(), workflow.Entity.ValueString(), workflow.Order.ValueInt64()))
 
-		_, err = subType.SetStatusInWorkFlow(ctx, r.client, workflow.Entity.ValueString(), plan.ID.ValueString(), int(workflow.Order.ValueInt64()))
+		_, err = subType.SetStatusInWorkFlow(ctx, r.client, workflow.Entity.ValueString(), plan.ID.ValueString(), int(workflow.Order.ValueInt64()), "GLOBAL")
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error setting status in workflow",
@@ -207,6 +208,7 @@ func (r *statusTemplateResource) Create(ctx context.Context, req resource.Create
 func (r *statusTemplateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state statusTemplateResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 
@@ -265,6 +267,7 @@ func (r *statusTemplateResource) Update(ctx context.Context, req resource.Update
 func (r *statusTemplateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Retrieve values from state
 	var state statusTemplateResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 

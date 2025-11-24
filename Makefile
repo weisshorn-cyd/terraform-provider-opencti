@@ -4,7 +4,7 @@ ENV ?= ./docker-compose.env
 
 GOOS ?= linux
 GOARCH ?= amd64
-VERSION ?= 0.1.0
+VERSION ?= 0.2.0
 
 include $(ENV)
 
@@ -18,14 +18,14 @@ build:
 	go build -o terraform-provider-opencti_$(VERSION)
 
 .PHONY: prepare-examples
-prepare-examples:
+prepare-examples: build
 	mkdir -p examples/.terraform/plugins/terraform.local/weisshorn-cyd/opencti/$(VERSION)/$(GOOS)_$(GOARCH)
 	mkdir -p examples/terraform.d/plugins/terraform.local/weisshorn-cyd/opencti/$(VERSION)/$(GOOS)_$(GOARCH)
 	cp terraform-provider-opencti_* examples/.terraform/plugins/terraform.local/weisshorn-cyd/opencti/$(VERSION)/$(GOOS)_$(GOARCH)/
 	cp terraform-provider-opencti_* examples/terraform.d/plugins/terraform.local/weisshorn-cyd/opencti/$(VERSION)/$(GOOS)_$(GOARCH)/
 
 .PHONY: build-examples
-build-examples: build prepare-examples
+build-examples: prepare-examples
 
 .PHONY: fmt
 fmt:

@@ -12,5 +12,5 @@ import (
 // to ensure the documentation is formatted properly.
 //go:generate terraform fmt -recursive ../examples/
 
-// Generate documentation.
+// Generate documentation. If error regarding tf version, add `--tf-version` flag.
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-dir .. -provider-name terraform-provider-opencti
