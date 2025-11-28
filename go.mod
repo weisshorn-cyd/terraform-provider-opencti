@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/terraform-plugin-framework v1.16.1
 	github.com/hashicorp/terraform-plugin-log v0.10.0
-	github.com/weisshorn-cyd/gocti v0.52.0
+	github.com/weisshorn-cyd/gocti v0.53.0
 )
 
 require (
