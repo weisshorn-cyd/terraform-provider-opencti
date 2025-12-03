@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/hashicorp/terraform-plugin-framework v1.16.1
+	github.com/hashicorp/terraform-plugin-framework v1.17.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/weisshorn-cyd/gocti v0.52.0
 )
