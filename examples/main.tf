@@ -1,10 +1,3 @@
-terraform {
-  required_providers {
-    opencti = {
-      source = "terraform.local/weisshorn-cyd/opencti"
-    }
-  }
-}
 
 # opencti settings
 provider "opencti" {
