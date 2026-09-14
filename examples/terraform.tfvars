@@ -159,6 +159,12 @@ status_templates = [
     ]
   },
   {
+    name  = "ANALYZED",
+    color = "#3e8b46",
+    workflows = [
+    ]
+  },
+  {
     name  = "ON_HOLD",
     color = "#d0021b",
     workflows = [

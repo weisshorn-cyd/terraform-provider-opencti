@@ -242,10 +242,12 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 	tflog.Info(ctx, fmt.Sprintf("Confidence level: %+v", conf))
 
 	// Create new user
+	var apiToken string
+
 	if createdUser.Name == "" {
 		tflog.Info(ctx, "User does not exist, creating")
 
-		createdUser, err = r.client.CreateUser(ctx, "id name user_email api_token user_confidence_level { max_confidence overrides { entity_type max_confidence } }", system.UserAddInput{
+		createdUser, err = r.client.CreateUser(ctx, "id name user_email user_confidence_level { max_confidence overrides { entity_type max_confidence } }", system.UserAddInput{
 			UserEmail:           plan.UserEmail.ValueString(),
 			Name:                plan.Name.ValueString(),
 			Password:            uuid.New().String(),
@@ -255,6 +257,21 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 			resp.Diagnostics.AddError(
 				"Error creating user",
 				"Could not create user, unexpected error: "+err.Error(),
+			)
+
+			return
+		}
+
+		// Generate a new API token for the user via userAdminTokenAdd.
+		// OpenCTI 7.x generates the token server-side and returns
+		// plaintext_token exactly once. The provider captures it into state
+		// for downstream secrets management (e.g. HashiCorp Vault). The
+		// User.api_tokens field only exposes masked_token thereafter.
+		apiToken, err = r.generateUserToken(ctx, createdUser.ID)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating API token",
+				"Could not register the API token for the user: "+err.Error(),
 			)
 
 			return
@@ -307,7 +324,7 @@ func (r *userResource) Create(ctx context.Context, req resource.CreateRequest, r
 		ID:                  types.StringValue(createdUser.ID),
 		Name:                types.StringValue(createdUser.Name),
 		UserEmail:           types.StringValue(createdUser.UserEmail),
-		APIToken:            types.StringValue(createdUser.ApiToken),
+		APIToken:            types.StringValue(apiToken),
 		Groups:              groupsAssignedList,
 		UserConfidenceLevel: userConfidenceLevel,
 	}
@@ -336,7 +353,7 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 
 	// Read user from opencti
-	user, err := r.client.ReadUser(ctx, "id name user_email api_token user_confidence_level { max_confidence overrides { entity_type max_confidence } } groups { edges { node {id name} } }", state.ID.ValueString())
+	user, err := r.client.ReadUser(ctx, "id name user_email user_confidence_level { max_confidence overrides { entity_type max_confidence } } groups { edges { node {id name} } }", state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading opencti user", err.Error(),
@@ -362,7 +379,6 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	state.ID = types.StringValue(user.ID)
 	state.Name = types.StringValue(user.Name)
 	state.UserEmail = types.StringValue(user.UserEmail)
-	state.APIToken = types.StringValue(user.ApiToken)
 	state.Groups = groupsList
 	state.UserConfidenceLevel = userConfidenceLevel
 
@@ -387,7 +403,7 @@ func (r *userResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		return
 	}
 
-	user, err := r.client.ReadUser(ctx, "id name user_email api_token groups { edges { node {id name} } }", plan.ID.ValueString())
+	user, err := r.client.ReadUser(ctx, "id name user_email groups { edges { node {id name} } }", plan.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error Reading opencti user", err.Error(),
@@ -576,4 +592,48 @@ func convertUserConfidenceLevel(conf graphql.ConfidenceLevel) types.Object {
 			"overrides":      overrideList,
 		},
 	)
+}
+
+// generateUserToken requests a new API token from OpenCTI via the
+// userAdminTokenAdd GraphQL mutation.
+//
+// OpenCTI 7.x replaced the legacy per-user single api_token (returned in the
+// clear by userAdd) with a multi-token system where tokens are HMAC-hashed at
+// rest and only masked_token is exposed via User.api_tokens. The
+// userAdminTokenAdd mutation generates a token server-side and returns the
+// plaintext_token exactly once in the response, which the provider captures
+// into Terraform state for downstream secrets management (e.g. HashiCorp
+// Vault). The provider token must have the SETTINGS_SETACCESSES capability.
+func (r *userResource) generateUserToken(ctx context.Context, userID string) (string, error) {
+	result, err := r.client.Query(ctx,
+		`mutation ($userId: ID!, $input: UserTokenAddInput!) {
+			userAdminTokenAdd(userId: $userId, input: $input) {
+				token_id
+				plaintext_token
+				expires_at
+			}
+		}`,
+		map[string]any{
+			"userId": userID,
+			"input": map[string]any{
+				"name":     "terraform-managed",
+				"duration": "UNLIMITED",
+			},
+		},
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate API token: %w", err)
+	}
+
+	tokenAdd, ok := result["userAdminTokenAdd"].(map[string]any)
+	if !ok {
+		return "", fmt.Errorf("unexpected response from userAdminTokenAdd: %v", result)
+	}
+
+	plaintextToken, ok := tokenAdd["plaintext_token"].(string)
+	if !ok || plaintextToken == "" {
+		return "", fmt.Errorf("plaintext_token missing in userAdminTokenAdd response: %v", tokenAdd)
+	}
+
+	return plaintextToken, nil
 }

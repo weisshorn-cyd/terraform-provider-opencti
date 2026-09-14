@@ -4,7 +4,7 @@ ENV ?= ./docker-compose.env
 
 GOOS ?= linux
 GOARCH ?= amd64
-VERSION ?= 0.2.0
+VERSION ?= 0.3.0
 
 include $(ENV)
 

@@ -133,7 +133,7 @@ func (p *openctiProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 	if token == "" {
 		resp.Diagnostics.AddAttributeError(
-			path.Root("token "),
+			path.Root("token"),
 			"Missing opencti token",
 			"The provider cannot create the opencti API client as there is a missing or empty value for the opencti token. "+
 				"Set the token value in the configuration or use the OPENCTI_TOKEN environment variable. "+
